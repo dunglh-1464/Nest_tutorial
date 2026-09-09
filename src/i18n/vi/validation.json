@@ -1,0 +1,4 @@
+{
+  "NOT_EMPTY": "{property} không được để trống",
+  "IS_STRING": "{property} phải là chuỗi ký tự"
+}
