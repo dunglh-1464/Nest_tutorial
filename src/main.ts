@@ -10,6 +10,7 @@ async function bootstrap() {
   const SWAGGER_PATH = 'api/docs';
 
   app.setGlobalPrefix('api');
+  app.enableShutdownHooks();
 
   // Validate every incoming DTO. The I18n flavour of ValidationPipe routes error
   // messages through i18n, so they follow ?lang= just like successful responses.
