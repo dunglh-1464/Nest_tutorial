@@ -15,10 +15,9 @@ import { RegisterUserDto } from './dto/register.dto.js';
 import { LoginUserDto } from './dto/login.dto.js';
 import { RedisService } from '../redis/redis.service.js';
 import { JwtPayload } from './guards/jwt-auth.guard.js';
+import { POSTGRES_UNIQUE_VIOLATION_CODE } from './auth.constant.js';
 
 type UniqueField = 'email' | 'username';
-
-const UNIQUE_VIOLATION = '23505';
 
 @Injectable()
 export class AuthService {
@@ -31,10 +30,16 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   async register(dto: RegisterUserDto) {
-    if (await this.usersService.findByEmail(dto.email)) {
+    const [existingEmail, existingUsername] = await Promise.all([
+      this.usersService.findByEmail(dto.email),
+      this.usersService.findByUserName(dto.username),
+    ]);
+
+    if (existingEmail) {
       throw this.alreadyTaken('email');
     }
-    if (await this.usersService.findByUserName(dto.username)) {
+
+    if (existingUsername) {
       throw this.alreadyTaken('username');
     }
 
@@ -56,7 +61,7 @@ export class AuthService {
         error instanceof QueryFailedError
           ? (error.driverError as { code?: string; detail?: string })
           : undefined;
-      if (driverError?.code === UNIQUE_VIOLATION) {
+      if (driverError?.code === POSTGRES_UNIQUE_VIOLATION_CODE) {
         // Postgres names the column in `detail`: `Key (email)=(...) already exists.`
         const column = driverError.detail?.match(/Key \((\w+)\)/)?.[1];
         throw this.alreadyTaken(column === 'username' ? 'username' : 'email');
