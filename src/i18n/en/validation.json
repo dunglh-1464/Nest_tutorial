@@ -1,4 +1,12 @@
 {
   "NOT_EMPTY": "{property} must not be empty",
-  "IS_STRING": "{property} must be a string"
+  "IS_STRING": "{property} must be a string",
+  "BLANK": "can't be blank",
+  "INVALID_EMAIL": "is invalid",
+  "MIN_LENGTH": "is too short (minimum is {constraints.0} characters)",
+  "TAKEN": "has already been taken",
+  "WRONG_EMAIL_PASSWORD": "Email or password is incorrect",
+  "ACCOUNT_NOT_EXISTS": "The account does not exist.",
+  "TOKEN_MISSING": "is missing",
+  "TOKEN_INVALID": "is invalid"
 }

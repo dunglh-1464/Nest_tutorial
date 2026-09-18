@@ -1,8 +1,11 @@
 import {plainToInstance} from 'class-transformer';
 import {
   IsEnum,
+  IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
+  MinLength,
   ValidationError,
   validateSync,
 } from 'class-validator';
@@ -14,14 +17,57 @@ enum NodeEnv {
 }
 
 class EnvironmentVariables {
-  @IsEnum(['development', 'production', 'test'])
+  @IsEnum(NodeEnv)
   NODE_ENV!: NodeEnv;
 
   @IsNumber()
   PORT!: number;
 
   @IsString()
+  @IsNotEmpty()
   DEFAULT_LANGUAGE!: string;
+
+  @IsOptional()
+  @IsString()
+  APP_NAME: string;
+
+  @IsString()
+  @IsNotEmpty()
+  DB_HOST: string;
+
+  @IsNumber()
+  DB_PORT: number;
+
+  @IsString()
+  @IsNotEmpty()
+  DB_USERNAME: string;
+
+  @IsString()
+  @IsNotEmpty()
+  DB_PASSWORD: string;
+
+  @IsString()
+  @IsNotEmpty()
+  DB_NAME: string;
+
+  @IsString()
+  @IsNotEmpty()
+  REDIS_HOST: string;
+
+  @IsNumber()
+  REDIS_PORT: number;
+
+
+  @IsString()
+  @MinLength(32)
+  JWT_SECRET: string;
+
+  @IsNumber()
+  @IsOptional()
+  DB_TEST_PORT: number;
+
+  @IsString()
+  JWT_EXPIRES_IN: string;
 }
 
 /**

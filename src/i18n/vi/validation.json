@@ -1,4 +1,12 @@
 {
   "NOT_EMPTY": "{property} không được để trống",
-  "IS_STRING": "{property} phải là chuỗi ký tự"
+  "IS_STRING": "{property} phải là chuỗi ký tự",
+  "BLANK": "không được để trống",
+  "INVALID_EMAIL": "không hợp lệ",
+  "MIN_LENGTH": "quá ngắn (tối thiểu {constraints.0} ký tự)",
+  "TAKEN": "đã có người sử dụng",
+  "WRONG_EMAIL_PASSWORD": "Địa chỉ email hoặc mật khẩu không chính xác",
+  "ACCOUNT_NOT_EXISTS": "Không tìm thấy account",
+  "TOKEN_MISSING": "không được để trống",
+  "TOKEN_INVALID": "không hợp lệ"
 }
