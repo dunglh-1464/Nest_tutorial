@@ -1,9 +1,36 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  ParseFilePipeBuilder,
+  Post,
+  Put,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import {
+  ApiConsumes,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiSecurity,
+  ApiTags,
+} from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto.js';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
-import {  type AuthenticatedRequest, JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import {
+  type AuthenticatedRequest,
+  JwtAuthGuard,
+} from './guards/jwt-auth.guard.js';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { avatarUploadOptions } from '../attachments/avatar-upload.options.js';
+import { UpdateUserDto } from '../users/dto/update-user.dto.js';
 
 const USER_RESPONSE_EXAMPLE = {
   user: {
@@ -51,5 +78,33 @@ export class AuthController {
   @ApiNoContentResponse({ description: 'Token blacklisted; no body returned.' })
   logout(@Req() req: AuthenticatedRequest) {
     return this.authService.logout(req.user);
+  }
+
+  @Put('user')
+  @UseGuards(JwtAuthGuard)
+  @ApiSecurity('token')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Update current user' })
+  @UseInterceptors(FileInterceptor('image', avatarUploadOptions))
+  updateUser(
+    @Req() request: AuthenticatedRequest,
+
+    @Body()
+    dto: UpdateUserDto,
+
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .build({
+          fileIsRequired: false,
+        }),
+    )
+    image?: Express.Multer.File,
+  ) {
+    return this.authService.updateUser(
+      request.user.sub,
+      dto,
+      image,
+      request.token,
+    );
   }
 }

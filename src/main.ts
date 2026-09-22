@@ -4,9 +4,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { I18nValidationExceptionFilter, I18nValidationPipe } from 'nestjs-i18n';
 import { AppModule } from './app.module.js';
 import { formatValidationErrors } from './common/format-validation-errors.js';
+import { join } from 'node:path';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
   const SWAGGER_PATH = 'api/docs';
 
@@ -35,6 +37,10 @@ async function bootstrap() {
       }),
     }),
   );
+
+  app.useStaticAssets(join(process.cwd(), 'public', 'uploads'), {
+    prefix: '/uploads/',
+  });
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle(config.get<string>('app.name') ?? 'API')

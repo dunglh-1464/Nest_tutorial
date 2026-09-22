@@ -5,6 +5,10 @@ import { User } from './entities/user.entity.js';
 
 export type CreateUserData = Pick<User, 'username' | 'email' | 'passwordHash'>;
 
+export type UpdateUserData = Partial<
+  Pick<User, 'username' | 'email' | 'passwordHash' | 'bio' | 'image'>
+>;
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -22,11 +26,26 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findOneBy({email});
+    return this.usersRepository.findOneBy({ email });
   }
 
   async findByUserId(userId: string): Promise<User | null> {
-    return this.usersRepository.findOneBy({id: userId});
+    return this.usersRepository.findOneBy({ id: userId });
   }
 
+  async update(userId: string, data: UpdateUserData): Promise<User | null> {
+    const user = await this.findByUserId(userId);
+
+    if (!user) {
+      return null;
+    }
+
+    const definedData = Object.fromEntries(
+      Object.entries(data).filter(([, value]) => value !== undefined),
+    ) as UpdateUserData;
+
+    Object.assign(user, definedData);
+
+    return this.usersRepository.save(user);
+  }
 }

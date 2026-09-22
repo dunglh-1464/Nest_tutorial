@@ -8,5 +8,9 @@
   "WRONG_EMAIL_PASSWORD": "Địa chỉ email hoặc mật khẩu không chính xác",
   "ACCOUNT_NOT_EXISTS": "Không tìm thấy account",
   "TOKEN_MISSING": "không được để trống",
-  "TOKEN_INVALID": "không hợp lệ"
+  "TOKEN_INVALID": "không hợp lệ",
+  "INVALID_IMAGE_TYPE": "Chỉ cho phép các tệp JPEG, PNG và WebP.",
+  "PROFILE_NOT_FOUND": "Không tìm thấy Profile",
+  "FOLLOWED_ME": "bạn đã theo dõi rồi ",
+  "NOT_FOLLOWING": "bạn chưa follow"
 }

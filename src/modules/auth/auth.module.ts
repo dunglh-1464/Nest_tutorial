@@ -6,6 +6,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import type { StringValue } from 'ms';
 import { RedisModule } from '../redis/redis.module.js';
+import { AttachmentsModule } from '../attachments/attachments.module.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
 @Module({
   imports: [
@@ -19,9 +21,11 @@ import { RedisModule } from '../redis/redis.module.js';
         },
       }),
     }),
-    RedisModule
+    RedisModule,
+    AttachmentsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, JwtAuthGuard],
+  exports: [JwtAuthGuard, JwtModule, RedisModule],
 })
 export class AuthModule {}
