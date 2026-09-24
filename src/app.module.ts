@@ -13,6 +13,8 @@ import { UsersModule } from './modules/users/users.module.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from './modules/redis/redis.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { AttachmentsModule } from './modules/attachments/attachments.module.js';
+import { ProfilesModule } from './modules/profiles/profiles.module.js';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { AuthModule } from './modules/auth/auth.module.js';
     UsersModule,
     RedisModule,
     AuthModule,
+    AttachmentsModule,
+    ProfilesModule,
   ],
 })
 export class AppModule {}

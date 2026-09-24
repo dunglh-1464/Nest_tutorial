@@ -8,5 +8,9 @@
   "WRONG_EMAIL_PASSWORD": "Email or password is incorrect",
   "ACCOUNT_NOT_EXISTS": "The account does not exist.",
   "TOKEN_MISSING": "is missing",
-  "TOKEN_INVALID": "is invalid"
+  "TOKEN_INVALID": "is invalid",
+  "INVALID_IMAGE_TYPE": "Only JPEG, PNG and WebP files are allowed",
+  "PROFILE_NOT_FOUND": "Profile not found",
+  "FOLLOWED_ME": "You've already followed me.",
+  "NOT_FOLLOWING": "You haven't followed yet."
 }

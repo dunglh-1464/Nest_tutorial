@@ -16,6 +16,8 @@ import { LoginUserDto } from './dto/login.dto.js';
 import { RedisService } from '../redis/redis.service.js';
 import { JwtPayload } from './guards/jwt-auth.guard.js';
 import { POSTGRES_UNIQUE_VIOLATION_CODE } from './auth.constant.js';
+import { UpdateUserDto } from '../users/dto/update-user.dto.js';
+import { AttachmentsService } from '../attachments/attachments.service.js';
 
 type UniqueField = 'email' | 'username';
 
@@ -25,6 +27,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
+    private readonly attachmentsService: AttachmentsService,
   ) {}
 
   private readonly logger = new Logger(AuthService.name);
@@ -142,5 +145,40 @@ export class AuthService {
       '1',
       ttlSeconds,
     );
+  }
+
+  async updateUser(
+    userId: string,
+    dto: UpdateUserDto,
+    image: Express.Multer.File | undefined,
+    token: string,
+  ) {
+    const { password, ...fields } = dto;
+
+    const attachment = image
+      ? await this.attachmentsService.replaceUserAvatar(userId, image)
+      : undefined;
+
+    const user = await this.usersService.update(userId, {
+      ...fields,
+
+      ...(password
+        ? {
+            passwordHash: await argon2.hash(password),
+          }
+        : {}),
+
+      ...(attachment
+        ? {
+            image: attachment.url,
+          }
+        : {}),
+    });
+
+    if (!user) {
+      throw this.unauthorizedException('validation.ACCOUNT_NOT_EXISTS');
+    }
+
+    return this.buildUserResponse(user, token);
   }
 }
