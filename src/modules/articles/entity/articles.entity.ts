@@ -6,11 +6,13 @@ import {
   JoinTable,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity.js';
 import { Tag } from './tags.entity.js';
+import { Comment } from './comment.entity.js';
 
 @Entity('articles')
 export class Article {
@@ -62,6 +64,9 @@ export class Article {
     },
   })
   favoritedBy: User[];
+
+  @OneToMany(() => Comment, (comment) => comment.article)
+  comments: Comment[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

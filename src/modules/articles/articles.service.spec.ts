@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { ArticlesService } from './articles.service.js';
 import { Article } from './entity/articles.entity.js';
 import { Tag } from './entity/tags.entity.js';
+import { Comment } from './entity/comment.entity.js';
+import { NotFoundException } from '@nestjs/common';
 
 describe('ArticlesService.createArticle', () => {
   const author = { id: 'user-id', username: 'jake', bio: null, image: null };
@@ -96,5 +98,70 @@ describe('ArticlesService.createArticle', () => {
     expect(em.find).not.toHaveBeenCalled();
     expect(em.save).toHaveBeenCalledOnce();
     expect(result.article.tagList).toEqual([]);
+  });
+});
+
+describe('ArticlesService.createComment', () => {
+  const createdAt = new Date('2026-10-01T09:00:00.000Z');
+  const article = { id: 'article-id', slug: 'article-slug' } as Article;
+  const author = {
+    id: 'user-id',
+    username: 'jake',
+    bio: null,
+    image: null,
+  };
+
+  function setup(foundArticle: Article | null) {
+    const commentsRepository = {
+      create: vi.fn((data: Partial<Comment>) => data),
+      save: vi.fn(async (comment: Partial<Comment>) => ({ ...comment, id: 'comment-id' })),
+      findOneOrFail: vi.fn(async () => ({
+        id: 'comment-id',
+        body: 'Nice article',
+        createdAt,
+        updatedAt: createdAt,
+        author,
+      })),
+    };
+    const repository = {
+      findOneBy: vi.fn().mockResolvedValue(foundArticle),
+      manager: { getRepository: vi.fn(() => commentsRepository) },
+    };
+    const service = new ArticlesService(repository as unknown as Repository<Article>);
+    return { service, repository, commentsRepository };
+  }
+
+  it('saves a comment and returns the Single Comment response', async () => {
+    const { service, commentsRepository } = setup(article);
+
+    const result = await service.createComment('article-slug', 'Nice article', 'user-id');
+
+    expect(commentsRepository.create).toHaveBeenCalledWith({
+      body: 'Nice article',
+      article,
+      author: { id: 'user-id' },
+    });
+    expect(commentsRepository.save).toHaveBeenCalledOnce();
+    expect(commentsRepository.findOneOrFail).toHaveBeenCalledWith({
+      where: { id: 'comment-id' },
+      relations: { author: true },
+    });
+    expect(result).toEqual({
+      comment: {
+        id: 'comment-id',
+        body: 'Nice article',
+        createdAt: createdAt.toISOString(),
+        updatedAt: createdAt.toISOString(),
+        author: { username: 'jake', bio: null, image: null, following: false },
+      },
+    });
+  });
+
+  it('does not save a comment when the article is missing', async () => {
+    const { service, commentsRepository } = setup(null);
+
+    await expect(service.createComment('missing', 'Nice article', 'user-id'))
+      .rejects.toBeInstanceOf(NotFoundException);
+    expect(commentsRepository.save).not.toHaveBeenCalled();
   });
 });

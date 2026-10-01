@@ -17,6 +17,11 @@ import { User } from '../users/entities/user.entity.js';
 import { I18nContext } from 'nestjs-i18n';
 import { ListArticlesQueryDto } from './dto/list-articles-query.dto.js';
 import { FeedArticlesQueryDto } from './dto/feed-articles-query.dto.js';
+import { Comment } from './entity/comment.entity.js';
+import {
+  ResponseCommentDto,
+  ResponseMultipleCommentsDto,
+} from './dto/response-comment.dto.js';
 
 @Injectable()
 export class ArticlesService {
@@ -444,5 +449,119 @@ export class ArticlesService {
       })),
       articlesCount,
     };
+  }
+
+  async createComment(
+    slug: string,
+    body: string,
+    currentUserId: string,
+  ): Promise<ResponseCommentDto> {
+    const article = await this.articlesRepository.findOneBy({ slug });
+    if (!article) {
+      throw new NotFoundException(
+        I18nContext.current()?.t('validation.NOT_ARTICLE'),
+      );
+    }
+    const commentsRepository = this.articlesRepository.manager.getRepository(Comment);
+    const comment = commentsRepository.create({
+      body,
+      article,
+      author: { id: currentUserId },
+    });
+    const savedComment = await commentsRepository.save(comment);
+    const commentWithAuthor = await commentsRepository.findOneOrFail({
+      where: { id: savedComment.id },
+      relations: { author: true },
+    });
+
+    return {
+      comment: {
+        id: commentWithAuthor.id,
+        createdAt: commentWithAuthor.createdAt.toISOString(),
+        updatedAt: commentWithAuthor.updatedAt.toISOString(),
+        body: commentWithAuthor.body,
+        author: {
+          username: commentWithAuthor.author.username,
+          bio: commentWithAuthor.author.bio ?? null,
+          image: commentWithAuthor.author.image ?? null,
+          following: false,
+        },
+      },
+    };
+  }
+
+  async getComments(
+    slug: string,
+    currentUserId?: string,
+  ): Promise<ResponseMultipleCommentsDto> {
+    const article = await this.articlesRepository.findOne({
+      where: { slug },
+      relations: { comments: { author: true } },
+    });
+    if (!article) {
+      throw new NotFoundException(
+        I18nContext.current()?.t('validation.NOT_ARTICLE'),
+      );
+    }
+
+    const comments = article.comments ?? [];
+    const authorIds = [...new Set(comments.map((comment) => comment.author.id))];
+    const followedAuthorIds = new Set<string>();
+
+    if (currentUserId && authorIds.length > 0) {
+      const follows = await this.articlesRepository.manager
+        .getRepository(Follow)
+        .find({
+          where: {
+            follower: { id: currentUserId },
+            following: { id: In(authorIds) },
+          },
+          relations: { following: true },
+        });
+      follows.forEach((follow) => followedAuthorIds.add(follow.following.id));
+    }
+
+    return {
+      comments: comments
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+        .map((comment) => ({
+          id: comment.id,
+          createdAt: comment.createdAt.toISOString(),
+          updatedAt: comment.updatedAt.toISOString(),
+          body: comment.body,
+          author: {
+            username: comment.author.username,
+            bio: comment.author.bio ?? null,
+            image: comment.author.image ?? null,
+            following: followedAuthorIds.has(comment.author.id),
+          },
+        })),
+    };
+  }
+
+  async deleteComments(slug: string, commentId: string, currentId: string) {
+    const article = await this.articlesRepository.findOneBy({ slug });
+    if (!article) {
+      throw new NotFoundException(
+        I18nContext.current()?.t('validation.NOT_ARTICLE'),
+      );
+    }
+
+    const commentsRepository = this.articlesRepository.manager.getRepository(Comment);
+    const commentNeedDelete = await commentsRepository.findOne({
+      where: { id: commentId, article: { id: article.id } },
+      relations: { author: true },
+    });
+    if (!commentNeedDelete) {
+      throw new NotFoundException(
+        I18nContext.current()?.t('validation.NO_COMMENT_FOUND'),
+      );
+    }
+    if (commentNeedDelete.author.id !== currentId) {
+      throw new ForbiddenException(
+        I18nContext.current()?.t('validation.NOT_DELETE_COMMENT'),
+      );
+    }
+    await commentsRepository.remove(commentNeedDelete);
   }
 }
