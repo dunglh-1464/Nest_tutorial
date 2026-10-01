@@ -15,6 +15,7 @@ import { RedisModule } from './modules/redis/redis.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { AttachmentsModule } from './modules/attachments/attachments.module.js';
 import { ProfilesModule } from './modules/profiles/profiles.module.js';
+import { ArticlesModule } from './modules/articles/articles.module.js';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ProfilesModule } from './modules/profiles/profiles.module.js';
     AuthModule,
     AttachmentsModule,
     ProfilesModule,
+    ArticlesModule,
   ],
 })
 export class AppModule {}

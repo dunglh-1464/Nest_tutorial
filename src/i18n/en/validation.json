@@ -12,5 +12,10 @@
   "INVALID_IMAGE_TYPE": "Only JPEG, PNG and WebP files are allowed",
   "PROFILE_NOT_FOUND": "Profile not found",
   "FOLLOWED_ME": "You've already followed me.",
-  "NOT_FOLLOWING": "You haven't followed yet."
+  "NOT_FOLLOWING": "You haven't followed yet.",
+  "NOT_ARTICLE": "Article not found",
+  "NOT_EDIT_POST": "You are not allowed to edit this post.",
+  "NOT_DELETE_POST": "You do not have the right to delete posts.",
+  "LIKED_POST": "You've already liked the post.",
+  "NOT_LIKED_POST": "You haven't liked this post yet."
 }
