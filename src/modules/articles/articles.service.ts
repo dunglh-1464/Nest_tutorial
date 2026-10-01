@@ -23,8 +23,6 @@ export class ArticlesService {
   constructor(
     @InjectRepository(Article)
     private readonly articlesRepository: Repository<Article>,
-    @InjectRepository(Tag)
-    private readonly tagsRepository: Repository<Tag>,
   ) {}
 
   createNewSlug(slug: string): string {
@@ -42,27 +40,34 @@ export class ArticlesService {
     createArticleDto: CreateArticleDto,
     userId: string,
   ): Promise<ResponseArticleDto> {
-    const tags: Tag[] = [];
-    for (const name of createArticleDto.tagList ?? []) {
-      let tag = await this.tagsRepository.findOneBy({ name });
-      if (!tag) {
-        tag = await this.tagsRepository.save(
-          this.tagsRepository.create({ name }),
-        );
-      }
-      tags.push(tag);
-    }
+    const names = [...new Set(createArticleDto.tagList ?? [])];
+    const { savedArticle, tags } =
+      await this.articlesRepository.manager.transaction(async (em) => {
+        if (names.length > 0) {
+          await em
+            .createQueryBuilder()
+            .insert()
+            .into(Tag)
+            .values(names.map((name) => ({ name })))
+            .orIgnore()
+            .execute();
+        }
 
-    const slug = this.createNewSlug(createArticleDto.title);
-    const article = this.articlesRepository.create({
-      title: createArticleDto.title,
-      description: createArticleDto.description,
-      body: createArticleDto.body,
-      slug,
-      author: { id: userId },
-      tags,
-    });
-    const savedArticle = await this.articlesRepository.save(article);
+        const tags =
+          names.length > 0
+            ? await em.find(Tag, { where: { name: In(names) } })
+            : [];
+        const article = em.create(Article, {
+          title: createArticleDto.title,
+          description: createArticleDto.description,
+          body: createArticleDto.body,
+          slug: this.createNewSlug(createArticleDto.title),
+          author: { id: userId },
+          tags,
+        });
+        const savedArticle = await em.save(article);
+        return { savedArticle, tags };
+      });
     const articleWithAuthor = await this.articlesRepository.findOneOrFail({
       where: { id: savedArticle.id },
       relations: { author: true },
@@ -418,26 +423,26 @@ export class ArticlesService {
       .take(query.limit)
       .getManyAndCount();
 
-      return {
-        articles: articles.map((article) => ({
-          slug: article.slug,
-          title: article.title,
-          description: article.description,
-          tagList: article.tags.map((tag) => tag.name),
-          createdAt: article.createdAt.toISOString(),
-          updatedAt: article.updatedAt.toISOString(),
-          favorited: article.favoritedBy.some(
-            (user) => user.id === currentUserId,
-          ),
-          favoritesCount: article.favoritedBy.length,
-          author: {
-            username: article.author.username,
-            bio: article.author.bio ?? null,
-            image: article.author.image ?? null,
-            following: true,
-          },
-        })),
-        articlesCount,
-      };
+    return {
+      articles: articles.map((article) => ({
+        slug: article.slug,
+        title: article.title,
+        description: article.description,
+        tagList: article.tags.map((tag) => tag.name),
+        createdAt: article.createdAt.toISOString(),
+        updatedAt: article.updatedAt.toISOString(),
+        favorited: article.favoritedBy.some(
+          (user) => user.id === currentUserId,
+        ),
+        favoritesCount: article.favoritedBy.length,
+        author: {
+          username: article.author.username,
+          bio: article.author.bio ?? null,
+          image: article.author.image ?? null,
+          following: true,
+        },
+      })),
+      articlesCount,
+    };
   }
 }
