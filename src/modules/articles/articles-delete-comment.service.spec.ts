@@ -18,7 +18,7 @@ describe('ArticlesService.deleteComments', () => {
       remove: vi.fn().mockResolvedValue(foundComment),
     };
     const repository = {
-      findOneBy: vi.fn().mockResolvedValue(foundArticle),
+      findOne: vi.fn().mockResolvedValue(foundArticle),
       manager: { getRepository: vi.fn(() => commentsRepository) },
     };
     const service = new ArticlesService(repository as unknown as Repository<Article>);
@@ -30,9 +30,13 @@ describe('ArticlesService.deleteComments', () => {
 
     await service.deleteComments('article-slug', 'comment-id', 'author-id');
 
-    expect(repository.findOneBy).toHaveBeenCalledWith({ slug: 'article-slug' });
+    expect(repository.findOne).toHaveBeenCalledWith({
+      where: { slug: 'article-slug' },
+      select: { id: true },
+    });
     expect(commentsRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'comment-id', article: { id: 'article-id' } },
+      select: { id: true, author: { id: true } },
       relations: { author: true },
     });
     expect(commentsRepository.remove).toHaveBeenCalledWith(comment);

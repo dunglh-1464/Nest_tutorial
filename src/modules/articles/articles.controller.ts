@@ -27,6 +27,7 @@ import {
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard.js';
 import { ListArticlesQueryDto } from './dto/list-articles-query.dto.js';
 import { FeedArticlesQueryDto } from './dto/feed-articles-query.dto.js';
+import { CommentsQueryDto } from './dto/comments-query.dto.js';
 import { RequestCreateCommentDto } from './dto/create-comment.dto.js';
 import {
   ResponseCommentDto,
@@ -137,9 +138,10 @@ export class ArticlesController {
   @ApiOkResponse({ type: ResponseMultipleCommentsDto })
   getComments(
     @Param('slug') slug: string,
+    @Query() query: CommentsQueryDto,
     @Req() request: Request & { user?: { sub: string } },
   ) {
-    return this.articlesService.getComments(slug, request.user?.sub);
+    return this.articlesService.getComments(slug, query, request.user?.sub);
   }
 
   @Delete('/articles/:slug/comments/:id')

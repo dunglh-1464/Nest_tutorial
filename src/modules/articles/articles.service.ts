@@ -17,6 +17,7 @@ import { User } from '../users/entities/user.entity.js';
 import { I18nContext } from 'nestjs-i18n';
 import { ListArticlesQueryDto } from './dto/list-articles-query.dto.js';
 import { FeedArticlesQueryDto } from './dto/feed-articles-query.dto.js';
+import { CommentsQueryDto } from './dto/comments-query.dto.js';
 import { Comment } from './entity/comment.entity.js';
 import {
   ResponseCommentDto,
@@ -492,11 +493,12 @@ export class ArticlesService {
 
   async getComments(
     slug: string,
+    query: CommentsQueryDto,
     currentUserId?: string,
   ): Promise<ResponseMultipleCommentsDto> {
     const article = await this.articlesRepository.findOne({
       where: { slug },
-      relations: { comments: { author: true } },
+      select: { id: true },
     });
     if (!article) {
       throw new NotFoundException(
@@ -504,8 +506,30 @@ export class ArticlesService {
       );
     }
 
-    const comments = article.comments ?? [];
-    const authorIds = [...new Set(comments.map((comment) => comment.author.id))];
+    const comments = await this.articlesRepository.manager
+      .getRepository(Comment)
+      .find({
+        where: { article: { id: article.id } },
+        select: {
+          id: true,
+          body: true,
+          createdAt: true,
+          updatedAt: true,
+          author: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        relations: { author: true },
+        order: { createdAt: 'ASC', id: 'ASC' },
+        skip: query.offset,
+        take: query.limit,
+      });
+    const authorIds = [
+      ...new Set(comments.map((comment) => comment.author.id)),
+    ];
     const followedAuthorIds = new Set<string>();
 
     if (currentUserId && authorIds.length > 0) {
@@ -516,31 +540,33 @@ export class ArticlesService {
             follower: { id: currentUserId },
             following: { id: In(authorIds) },
           },
+          select: { following: { id: true } },
           relations: { following: true },
         });
       follows.forEach((follow) => followedAuthorIds.add(follow.following.id));
     }
 
     return {
-      comments: comments
-        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-        .map((comment) => ({
-          id: comment.id,
-          createdAt: comment.createdAt.toISOString(),
-          updatedAt: comment.updatedAt.toISOString(),
-          body: comment.body,
-          author: {
-            username: comment.author.username,
-            bio: comment.author.bio ?? null,
-            image: comment.author.image ?? null,
-            following: followedAuthorIds.has(comment.author.id),
-          },
-        })),
+      comments: comments.map((comment) => ({
+        id: comment.id,
+        createdAt: comment.createdAt.toISOString(),
+        updatedAt: comment.updatedAt.toISOString(),
+        body: comment.body,
+        author: {
+          username: comment.author.username,
+          bio: comment.author.bio ?? null,
+          image: comment.author.image ?? null,
+          following: followedAuthorIds.has(comment.author.id),
+        },
+      })),
     };
   }
 
   async deleteComments(slug: string, commentId: string, currentId: string) {
-    const article = await this.articlesRepository.findOneBy({ slug });
+    const article = await this.articlesRepository.findOne({
+      where: { slug },
+      select: { id: true },
+    });
     if (!article) {
       throw new NotFoundException(
         I18nContext.current()?.t('validation.NOT_ARTICLE'),
@@ -550,6 +576,7 @@ export class ArticlesService {
     const commentsRepository = this.articlesRepository.manager.getRepository(Comment);
     const commentNeedDelete = await commentsRepository.findOne({
       where: { id: commentId, article: { id: article.id } },
+      select: { id: true, author: { id: true } },
       relations: { author: true },
     });
     if (!commentNeedDelete) {

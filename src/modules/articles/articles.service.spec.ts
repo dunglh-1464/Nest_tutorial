@@ -4,6 +4,7 @@ import { ArticlesService } from './articles.service.js';
 import { Article } from './entity/articles.entity.js';
 import { Tag } from './entity/tags.entity.js';
 import { Comment } from './entity/comment.entity.js';
+import { Follow } from '../profiles/entity/follow.entity.js';
 import { NotFoundException } from '@nestjs/common';
 
 describe('ArticlesService.createArticle', () => {
@@ -163,5 +164,90 @@ describe('ArticlesService.createComment', () => {
     await expect(service.createComment('missing', 'Nice article', 'user-id'))
       .rejects.toBeInstanceOf(NotFoundException);
     expect(commentsRepository.save).not.toHaveBeenCalled();
+  });
+});
+
+describe('ArticlesService.getComments', () => {
+  it('returns a page of comments and selects only fields needed for the response', async () => {
+    const createdAt = new Date('2026-10-01T09:00:00.000Z');
+    const article = {
+      id: 'article-id',
+    };
+    const comments = [
+      {
+        id: 'comment-id',
+        body: 'Nice article',
+        createdAt,
+        updatedAt: createdAt,
+        author: {
+          id: 'author-id',
+          username: 'jake',
+          bio: null,
+          image: null,
+        },
+      },
+    ];
+    const commentsRepository = { find: vi.fn().mockResolvedValue(comments) };
+    const followsRepository = {
+      find: vi.fn().mockResolvedValue([{ following: { id: 'author-id' } }]),
+    };
+    const repository = {
+      findOne: vi.fn().mockResolvedValue(article),
+      manager: {
+        getRepository: vi.fn((entity: unknown) =>
+          entity === Comment ? commentsRepository : followsRepository,
+        ),
+      },
+    };
+    const service = new ArticlesService(
+      repository as unknown as Repository<Article>,
+    );
+
+    await expect(
+      service.getComments(
+        'article-slug',
+        { limit: 10, offset: 20 },
+        'viewer-id',
+      ),
+    ).resolves.toEqual({
+      comments: [
+        {
+          id: 'comment-id',
+          createdAt: createdAt.toISOString(),
+          updatedAt: createdAt.toISOString(),
+          body: 'Nice article',
+          author: {
+            username: 'jake',
+            bio: null,
+            image: null,
+            following: true,
+          },
+        },
+      ],
+    });
+
+    expect(repository.findOne).toHaveBeenCalledWith({
+      where: { slug: 'article-slug' },
+      select: { id: true },
+    });
+    expect(commentsRepository.find).toHaveBeenCalledWith({
+      where: { article: { id: 'article-id' } },
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        updatedAt: true,
+        author: { id: true, username: true, bio: true, image: true },
+      },
+      relations: { author: true },
+      order: { createdAt: 'ASC', id: 'ASC' },
+      skip: 20,
+      take: 10,
+    });
+    expect(followsRepository.find).toHaveBeenCalledWith({
+      where: expect.objectContaining({ follower: { id: 'viewer-id' } }),
+      select: { following: { id: true } },
+      relations: { following: true },
+    });
   });
 });
