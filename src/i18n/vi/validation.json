@@ -17,5 +17,7 @@
   "NOT_EDIT_POST": "Bạn không được sửa bài viết này",
   "NOT_DELETE_POST": "Bạn không có quyền xoá bài ",
   "LIKED_POST": "Bạn đã thích bài viết.",
-  "NOT_LIKED_POST": "Bạn chưa thích bài viết này "
+  "NOT_LIKED_POST": "Bạn chưa thích bài viết này ",
+  "NO_COMMENT_FOUND": "Không tìm thấy bình luận.",
+  "NOT_DELETE_COMMENT": "bạn không có quyền xoá comment"
 }

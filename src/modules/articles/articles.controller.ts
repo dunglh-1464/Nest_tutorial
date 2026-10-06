@@ -9,11 +9,16 @@ import {
   Req,
   Put,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import { ArticlesService } from './articles.service.js';
 import { RequestCreateArticleDto } from './dto/create-article.dto.js';
 import { UpdateRequestArticleDto } from './dto/update-article.dto.js';
-import { ApiCreatedResponse, ApiNoContentResponse } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+} from '@nestjs/swagger';
 import { ResponseArticleDto } from './dto/response-article.dto.js';
 import {
   type AuthenticatedRequest,
@@ -22,6 +27,12 @@ import {
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard.js';
 import { ListArticlesQueryDto } from './dto/list-articles-query.dto.js';
 import { FeedArticlesQueryDto } from './dto/feed-articles-query.dto.js';
+import { CommentsQueryDto } from './dto/comments-query.dto.js';
+import { RequestCreateCommentDto } from './dto/create-comment.dto.js';
+import {
+  ResponseCommentDto,
+  ResponseMultipleCommentsDto,
+} from './dto/response-comment.dto.js';
 
 @Controller()
 export class ArticlesController {
@@ -105,5 +116,43 @@ export class ArticlesController {
     @Req() request: Request & { user?: { sub: string } },
   ) {
     return this.articlesService.articlesList(query, request.user?.sub);
+  }
+
+  @Post('articles/:slug/comments')
+  @UseGuards(JwtAuthGuard)
+  @ApiCreatedResponse({ type: ResponseCommentDto })
+  createComment(
+    @Param('slug') slug: string,
+    @Body() body: RequestCreateCommentDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.articlesService.createComment(
+      slug,
+      body.comment.body,
+      req.user.sub,
+    );
+  }
+
+  @Get('articles/:slug/comments')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOkResponse({ type: ResponseMultipleCommentsDto })
+  getComments(
+    @Param('slug') slug: string,
+    @Query() query: CommentsQueryDto,
+    @Req() request: Request & { user?: { sub: string } },
+  ) {
+    return this.articlesService.getComments(slug, query, request.user?.sub);
+  }
+
+  @Delete('/articles/:slug/comments/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiNoContentResponse()
+  @HttpCode(204)
+  deleteComment(
+    @Param('slug') slug: string,
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.articlesService.deleteComments(slug, id, req.user.sub);
   }
 }
